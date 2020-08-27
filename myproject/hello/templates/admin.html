@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1> Schedule an Interview </h1>
+<form>
+    <label for="interviewee_name">Choose an interviewee:</label>
+    <select name="interviewee_id" id = "interviewee_id">
+        {% for i in userDetails %}
+            {% if i[3] == 1 %}
+                 <option value= {{i[0]}}> {{i[1]}} , {{i[2]}}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+    <label for="interviewer_name">Choose an interviewer:</label>
+    <select name="interviewer_id" id = "interviewer_id">
+        {% for i in userDetails %}
+            {% if i[3] == 2 %}
+                 <option value= {{i[0]}}> {{i[1]}} , {{i[2]}}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+    <label for="start_time">select start_time:</label>
+    <input type = 'datetime-local' name = 'start_time' id = 'start_time'> 
+    <label for="end_time">select_end_time:</label>
+    <input type = 'datetime-local' name = 'end_time' id = 'end_time'> 
+
+    <button type="button" onclick="loadDoc()"> ADD slots </button>
+</form>
+<br>
+<div>
+  <p id = "msg">
+  </p>
+</div>
+<br>
+
+<h1> Upcoming Interviews </h1>
+<div>  
+  <table border = "1" id = "schedule">
+  </table>
+</div>
+
+
+
+ 
+<script>
+createtable()
+var flag = 0;
+var intee_id, inter_id;
+function createtable(){
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange=function() {
+    if (this.readyState == 4 && this.status == 200) {
+        
+      console.log(this.response);
+      var str = "<tr> <th> Interviewee_Name </th> <th> interviewer_Name </th> <th> Start_Time </th> <th> End_Time </th> <th> option </th></tr>";
+      var ans = JSON.stringify(this.responseText)
+      ans = JSON.parse(JSON.parse(ans));
+      console.log(ans)
+
+      if(ans.message[0].flag == 1) {
+        // alert('no interviews pending');
+      }
+      else {
+        for(var i in ans.message) {
+          console.log(ans.message[i])
+          str += "<tr>"
+          str += "<td>" + ans.message[i].intervieweeName + "</td>"
+          str += "<td>" + ans.message[i].interviewerName + "</td>"
+          str += "<td>" + ans.message[i].start_time + "</td>"
+          str += "<td>" + ans.message[i].end_time + "</td>"
+          str+= "<td> <button type='button' onclick='edit(\"" + ans.message[i].intervieweeName + "\",\"" + ans.message[i].interviewerName + "\",\"" + ans.message[i].save_start_time + "\",\"" + ans.message[i].save_end_time +  "\",\"" + ans.message[i].save_interviewee_id+ "\",\"" +ans.message[i].save_interviewer_id+  "\")'> edit </button> </td>"
+          str += "</tr>"
+        }
+      }
+
+      document.getElementById("schedule").innerHTML = str;
+    }
+  };
+  xhttp.open("POST", "/get_interview_slots", true);
+  xhttp.send();
+}
+var aa, bb, cc, dd;
+function edit(eename, ername, a, b, c, d) {
+  intee_id = c;
+  inter_id = d;
+  aa = a;
+  bb = b;
+  cc = c;
+  dd = d;
+  alert("Reschedule this interview by again entering the feilds");
+  var str = " <b> Interviewee_Name </b> : " + eename + "<br> <b> Interviewer_Name </b> : " + ername + "" 
+  str += "<form>"
+  str += "<label for=\"start_time\">select start_time : </label>"
+  str += "<input type = 'datetime-local' name = 'ch_start_time' id = 'ch_start_time'> &nbsp;" 
+  str += "<label for=\"end_time\">select_end_time : </label>"
+  str += "<input type = 'datetime-local' name = 'ch_end_time' id = 'ch_end_time'>"
+  str += "<button type=\"button\" onclick=\"del()\"> Edit </button>"
+  str += "<button type=\"button\" onclick=\"fun()\"> cancel </button>"
+  str += "</form>";
+  
+  document.getElementById("msg").innerHTML = str;
+}
+function fun(){
+  document.getElementById("msg").innerHTML = "";
+  createtable();
+}
+var delete_query = 0;
+function del() {
+  flag = 1;
+
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      ans = JSON.parse(this.responseText)
+      if (ans['message'] == 'Successfully Completed') {
+        delete_query = 1;
+        loadDoc();
+        createtable();
+      } 
+    }
+  };
+  xhttp.open("POST", "/edit", true);
+  xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  xhttp.send("interviewee_id=" + cc + "&interviewer_id=" + dd + "&start_time=" + aa + "&end_time=" + bb +"&hh=0");
+}
+function loadDoc() {
+  var interviewee_id;
+  var start_time;
+  var interviewer_id;
+  var end_time;
+  if(flag == 0) {
+    interviewee_id= document.getElementById("interviewee_id").value;
+    interviewer_id = document.getElementById("interviewer_id").value;
+    start_time = document.getElementById('start_time').value;
+    end_time = document.getElementById('end_time').value;
+  }
+  else if(flag==1){
+    interviewee_id= intee_id;
+    interviewer_id = inter_id;
+    start_time = document.getElementById('ch_start_time').value;
+    end_time = document.getElementById('ch_end_time').value;
+    document.getElementById("msg").innerHTML = "";
+  }
+  else {
+    interviewee_id= cc;
+    interviewer_id = dd;
+    start_time = aa;
+    end_time = bb;
+  }
+  flag = 0;
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var ans = JSON.parse(this.responseText);
+      if (ans['message'] == 'Successfully Completed') {
+        createtable();
+      }
+      else { 
+        if(delete_query == 1) {
+          
+          alert("wrong edit query reverting back your entry")
+          delete_query = 0;
+          flag = 2;
+          loadDoc();
+        }
+        else alert("Try another slots both interviewee and interviewer are not available or you have entered invalid date")
+      }
+   }
+   
+  };
+  xhttp.open("POST", "/admin", true);
+  xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  xhttp.send("interviewee_id=" + interviewee_id + "&interviewer_id=" + interviewer_id + "&start_time=" + start_time + "&end_time=" + end_time +"&hh=0");
+}
+</script>
+
+</body>
+</html>
